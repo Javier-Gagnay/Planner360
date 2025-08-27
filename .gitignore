@@ -1,0 +1,55 @@
+# Archivos de Excel
+*.xlsx
+*.xls
+*.xlsm
+*.xlsb
+*.xltx
+*.xltm
+*.xlt
+*.csv
+
+# Archivos JSON de configuración local
+*.json
+
+# Archivos temporales de Office
+~$*
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencias
+node_modules/
+
+# Archivos de entorno
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos de build
+dist/
+build/
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Archivos de backup
+*.bak
+*.backup
+*.tmp

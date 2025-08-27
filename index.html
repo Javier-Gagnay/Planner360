@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planificador de Proyectos Dinámico</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-project-diagram"></i> Planificador de Proyectos</h1>
+            <div class="header-controls">
+                <button id="projectListBtn" class="btn btn-outline">
+                    <i class="fas fa-list"></i> Lista de Proyectos
+                </button>
+                <button id="addProjectBtn" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Nuevo Proyecto
+                </button>
+                <button id="exportBtn" class="btn btn-secondary">
+                    <i class="fas fa-download"></i> Exportar
+                </button>
+                <button id="settingsBtn" class="btn btn-outline">
+                    <i class="fas fa-cog"></i> Configuración
+                </button>
+            </div>
+        </header>
+
+        <!-- Navegación por pestañas -->
+        <div class="tabs-container">
+            <div class="tabs-nav" id="tabsNav">
+                <div class="tab active" data-project="proyecto1">
+                    <span>Proyecto 1</span>
+                    <button class="tab-close" onclick="closeProject('proyecto1')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenido del proyecto activo -->
+        <div class="project-content" id="projectContent">
+            <div class="project-header">
+                <div class="project-info">
+                    <h2 id="projectTitle">Proyecto 1</h2>
+                    <div class="project-stats">
+                        <span class="stat">
+                            <i class="fas fa-tasks"></i>
+                            <span id="totalTasks">0</span> tareas
+                        </span>
+                        <span class="stat">
+                            <i class="fas fa-chart-line"></i>
+                            <span id="projectProgress">0%</span> completado
+                        </span>
+                        <span class="stat">
+                            <i class="fas fa-calendar"></i>
+                            <span id="projectDuration">0 días</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="project-controls">
+                    <button id="editProjectBtn" class="btn btn-outline">
+                        <i class="fas fa-edit"></i> Editar Proyecto
+                    </button>
+                    <button id="addTaskBtn" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Nueva Actividad
+                    </button>
+                    <button id="viewModeBtn" class="btn btn-outline">
+                    <i class="fas fa-calendar-alt"></i> Vista Calendario
+                </button>
+                <button id="hybridViewBtn" class="btn btn-secondary">
+                    <i class="fas fa-chart-gantt"></i>
+                    Vista Gantt-Calendario
+                </button>
+                </div>
+            </div>
+
+            <!-- Filtros y búsqueda -->
+            <div class="filters">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchTasks" placeholder="Buscar actividades...">
+                </div>
+                <div class="filter-controls">
+                    <select id="statusFilter">
+                        <option value="all">Todos los estados</option>
+                        <option value="pending">Pendiente</option>
+                        <option value="in-progress">En progreso</option>
+                        <option value="completed">Completado</option>
+                    </select>
+                    <select id="priorityFilter">
+                        <option value="all">Todas las prioridades</option>
+                        <option value="high">Alta</option>
+                        <option value="medium">Media</option>
+                        <option value="low">Baja</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tabla principal de actividades -->
+            <div class="table-container">
+                <table class="project-table" id="projectTable">
+                    <thead>
+                        <tr>
+                            <th class="col-expand"></th>
+                            <th class="col-activity">Actividad</th>
+                            <th class="col-priority">Prioridad</th>
+                            <th class="col-start-planned">
+                                <div class="header-info">
+                                    <div class="header-title">Inicio del Plan</div>
+                                    <div class="header-subtitle">Fecha planificada</div>
+                                </div>
+                            </th>
+                            <th class="col-duration-planned">
+                                <div class="header-info">
+                                    <div class="header-title">Duración Plan</div>
+                                    <div class="header-subtitle">Días estimados</div>
+                                </div>
+                            </th>
+                            <th class="col-start-actual">
+                                <div class="header-info">
+                                    <div class="header-title">Inicio Real</div>
+                                    <div class="header-subtitle">Fecha real</div>
+                                </div>
+                            </th>
+                            <th class="col-duration-actual">
+                                <div class="header-info">
+                                    <div class="header-title">Duración Real</div>
+                                    <div class="header-subtitle">Días reales</div>
+                                </div>
+                            </th>
+                            <th class="col-progress">
+                                <div class="header-info">
+                                    <div class="header-title">% Completado</div>
+                                    <div class="header-subtitle">Progreso</div>
+                                </div>
+                            </th>
+                            <th class="col-status">Estado</th>
+                            <th class="col-timeline">
+                                <div class="header-info">
+                                    <div class="header-title">Timeline Gantt</div>
+                                    <div class="header-subtitle">
+                                        <span style="color: #1976d2;">■</span> Plan
+                                        <span style="color: #9c27b0;">■</span> Real
+                                        <span style="color: #4caf50;">■</span> Completado
+                                    </div>
+                                </div>
+                            </th>
+                            <th class="col-actions">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasksTableBody">
+                        <!-- Las filas se generarán dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Vista Calendario -->
+            <div id="calendarView" class="calendar-view" style="display: none;">
+                <div class="calendar-header">
+                    <button id="prevMonth" class="btn btn-outline">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <h3 id="currentMonth"></h3>
+                    <button id="nextMonth" class="btn btn-outline">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="calendar-grid" id="calendarGrid">
+                    <!-- El calendario se generará dinámicamente -->
+                </div>
+            </div>
+
+            <!-- Hybrid Gantt-Calendar View -->
+            <div id="hybridView" class="view-content" style="display: none;">
+                <div class="hybrid-header">
+                    <h3>Vista Gantt-Calendario</h3>
+                    <div class="month-navigation">
+                        <button id="hybridPrevMonth">‹</button>
+                        <span id="hybridCurrentMonth"></span>
+                        <button id="hybridNextMonth">›</button>
+                    </div>
+                </div>
+                <div class="hybrid-container">
+                    <div class="hybrid-table-wrapper">
+                        <div class="hybrid-fixed-columns">
+                            <table class="hybrid-fixed-table">
+                                <thead>
+                                    <tr>
+                                        <th>Actividad</th>
+                                        <th>Estado</th>
+                                        <th>Inicio Plan</th>
+                                        <th>Duración Plan</th>
+                                        <th>Duración Real</th>
+                                        <th>Inicio Real</th>
+                                        <th>Completado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hybridFixedBody">
+                                    <!-- Fixed columns content -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="hybrid-scroll-columns">
+                            <table class="hybrid-scroll-table">
+                                <thead>
+                                    <tr id="hybridDaysHeader">
+                                        <!-- Days headers will be generated dynamically -->
+                                    </tr>
+                                </thead>
+                                <tbody id="hybridDaysBody">
+                                    <!-- Days content will be generated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para agregar/editar proyecto -->
+    <div id="projectModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="projectModalTitle">Nuevo Proyecto</h3>
+                <button class="modal-close" onclick="closeModal('projectModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="projectForm">
+                    <div class="form-group">
+                        <label for="projectName">Nombre del Proyecto:</label>
+                        <input type="text" id="projectName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="projectDescription">Descripción:</label>
+                        <textarea id="projectDescription" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="projectStartDate">Fecha de Inicio:</label>
+                        <input type="date" id="projectStartDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="projectEndDate">Fecha de Fin Estimada:</label>
+                        <input type="date" id="projectEndDate">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('projectModal')">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveProject()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para agregar/editar actividad -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="taskModalTitle">Nueva Actividad</h3>
+                <button class="modal-close" onclick="closeModal('taskModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <div class="form-group">
+                        <label for="taskName">Nombre de la Actividad:</label>
+                        <input type="text" id="taskName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskDescription">Descripción:</label>
+                        <textarea id="taskDescription" rows="2"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="taskPriority">Prioridad:</label>
+                            <select id="taskPriority">
+                                <option value="low">Baja</option>
+                                <option value="medium" selected>Media</option>
+                                <option value="high">Alta</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="taskStatus">Estado:</label>
+                            <select id="taskStatus">
+                                <option value="pending" selected>Pendiente</option>
+                                <option value="in-progress">En progreso</option>
+                                <option value="completed">Completado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="taskStartPlanned">Inicio Planificado:</label>
+                            <input type="date" id="taskStartPlanned" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="taskDurationPlanned">Duración Plan (días):</label>
+                            <input type="number" id="taskDurationPlanned" min="1" value="1">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="taskStartActual">Inicio Real:</label>
+                            <input type="date" id="taskStartActual">
+                        </div>
+                        <div class="form-group">
+                            <label for="taskDurationActual">Duración Real (días):</label>
+                            <input type="number" id="taskDurationActual" min="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskProgress">Progreso (%):</label>
+                        <input type="range" id="taskProgress" min="0" max="100" value="0" oninput="updateProgressValue(this.value)">
+                        <span id="progressValue">0%</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="parentTask">Actividad Padre (opcional):</label>
+                        <select id="parentTask">
+                            <option value="">-- Ninguna (Actividad principal) --</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('taskModal')">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveTask()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Lista de Proyectos -->
+    <div id="projectListModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fas fa-list"></i> Lista de Proyectos</h2>
+                <button class="modal-close" onclick="closeModal('projectListModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="project-list-header">
+                    <div class="project-list-stats">
+                        <span class="stat">
+                            <i class="fas fa-project-diagram"></i>
+                            <span id="totalProjects">0</span> proyectos
+                        </span>
+                        <span class="stat">
+                            <i class="fas fa-tasks"></i>
+                            <span id="totalAllTasks">0</span> tareas totales
+                        </span>
+                    </div>
+                    <button id="newProjectFromListBtn" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Nuevo Proyecto
+                    </button>
+                </div>
+                <div class="project-list-container">
+                    <div class="project-list-grid" id="projectListGrid">
+                        <!-- Los proyectos se generarán dinámicamente -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('projectListModal')">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Configuración y Personalización -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fas fa-cog"></i> Configuración y Personalización</h2>
+                <button class="modal-close" onclick="closeModal('settingsModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-tabs">
+                    <div class="settings-tab-nav">
+                        <button class="settings-tab-btn active" data-tab="themes">
+                            <i class="fas fa-palette"></i> Temas y Apariencia
+                        </button>
+                        <button class="settings-tab-btn" data-tab="general">
+                            <i class="fas fa-sliders-h"></i> General
+                        </button>
+                    </div>
+                    
+                    <!-- Panel de Temas -->
+                    <div class="settings-tab-content active" id="themes-tab">
+                        <div class="theme-section">
+                            <h3><i class="fas fa-upload"></i> Cargar Tema Personalizado</h3>
+                            <p class="theme-description">Sube un archivo JSON con la configuración de tema para personalizar la apariencia del planificador.</p>
+                            
+                            <div class="file-upload-area">
+                                <input type="file" id="themeFileInput" accept=".json" style="display: none;">
+                                <div class="file-drop-zone" id="fileDropZone">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Arrastra un archivo JSON aquí o <button type="button" class="btn-link" onclick="document.getElementById('themeFileInput').click()">selecciona un archivo</button></p>
+                                    <small>Formatos soportados: .json</small>
+                                </div>
+                            </div>
+                            
+                            <div class="theme-preview" id="themePreview" style="display: none;">
+                                <h4>Vista Previa del Tema</h4>
+                                <div class="theme-info">
+                                    <span class="theme-name" id="themeName"></span>
+                                    <span class="theme-colors" id="themeColors"></span>
+                                </div>
+                                <div class="theme-actions">
+                                    <button type="button" class="btn btn-primary" onclick="applyTheme()">Aplicar Tema</button>
+                                    <button type="button" class="btn btn-secondary" onclick="resetThemePreview()">Cancelar</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="theme-section">
+                            <h3><i class="fas fa-swatchbook"></i> Temas Predefinidos</h3>
+                            <div class="predefined-themes">
+                                <div class="theme-card" data-theme="default">
+                                    <div class="theme-preview-colors">
+                                        <span style="background: #1976d2;"></span>
+                                        <span style="background: #4caf50;"></span>
+                                        <span style="background: #ff9800;"></span>
+                                        <span style="background: #f44336;"></span>
+                                    </div>
+                                    <h4>Tema por Defecto</h4>
+                                    <p>Colores estándar del planificador</p>
+                                    <button class="btn btn-outline" onclick="applyPredefinedTheme('default')">Aplicar</button>
+                                </div>
+                                
+                                <div class="theme-card" data-theme="reybesa">
+                                    <div class="theme-preview-colors">
+                                        <span style="background: #A00020;"></span>
+                                        <span style="background: #19423F;"></span>
+                                        <span style="background: #FFC700;"></span>
+                                        <span style="background: #59A472;"></span>
+                                    </div>
+                                    <h4>Tema Reybesa</h4>
+                                    <p>Colores corporativos Reybesa</p>
+                                    <button class="btn btn-outline" onclick="applyPredefinedTheme('reybesa')">Aplicar</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="theme-section">
+                            <h3><i class="fas fa-save"></i> Gestión de Temas</h3>
+                            <div class="theme-management">
+                                <button class="btn btn-secondary" onclick="exportCurrentTheme()">
+                                    <i class="fas fa-download"></i> Exportar Tema Actual
+                                </button>
+                                <button class="btn btn-outline" onclick="resetToDefaultTheme()">
+                                    <i class="fas fa-undo"></i> Restaurar Tema por Defecto
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Panel General -->
+                    <div class="settings-tab-content" id="general-tab">
+                        <div class="setting-group">
+                            <h3><i class="fas fa-globe"></i> Configuración General</h3>
+                            <div class="setting-item">
+                                <label for="autoSave">Guardado Automático</label>
+                                <input type="checkbox" id="autoSave" checked>
+                            </div>
+                            <div class="setting-item">
+                                <label for="dateFormat">Formato de Fecha</label>
+                                <select id="dateFormat">
+                                    <option value="dd/mm/yyyy">DD/MM/YYYY</option>
+                                    <option value="mm/dd/yyyy">MM/DD/YYYY</option>
+                                    <option value="yyyy-mm-dd">YYYY-MM-DD</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('settingsModal')">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
