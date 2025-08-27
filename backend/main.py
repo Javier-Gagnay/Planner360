@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Optional
 import sqlite3
@@ -277,6 +279,32 @@ async def create_task(task: TaskCreate, user_id: str = Depends(verify_token)):
         )
         conn.commit()
         return {"success": True, "id": task_id}
+
+# Configurar archivos estáticos
+static_dir = os.path.join(os.path.dirname(__file__), "..", "frontend")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    
+    # Servir index.html para rutas del frontend (SPA)
+    @app.get("/")
+    async def read_index():
+        index_path = os.path.join(static_dir, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        return {"message": "Frontend no encontrado"}
+    
+    # Catch-all para rutas del frontend
+    @app.get("/{full_path:path}")
+    async def catch_all(full_path: str):
+        # Si es una ruta de API, no hacer nada (dejar que FastAPI maneje el 404)
+        if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("redoc"):
+            raise HTTPException(status_code=404, detail="Not found")
+        
+        # Para otras rutas, servir index.html (SPA routing)
+        index_path = os.path.join(static_dir, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        raise HTTPException(status_code=404, detail="Frontend no encontrado")
 
 # Inicializar la aplicación
 @app.on_event("startup")
