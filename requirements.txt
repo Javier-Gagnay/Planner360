@@ -5,6 +5,7 @@ PyJWT
 passlib
 sqlalchemy
 pydantic
+email-validator
 python-dotenv
 supabase
 psycopg2-binary
