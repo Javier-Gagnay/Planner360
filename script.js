@@ -610,6 +610,11 @@ class ProjectManager {
         
         // Renderizar tabla de tareas
         this.renderTasksTable();
+        
+        // Validar y corregir discrepancias en barras de progreso
+        setTimeout(() => {
+            this.validateAndFixProgressBars();
+        }, 100);
     }
 
     renderTasksTable() {
@@ -1197,6 +1202,9 @@ class ProjectManager {
             return;
         }
         
+        // Actualizar progreso dinámico de tareas padre antes de renderizar
+        this.updateParentTasksProgress();
+        
         // Separar tareas principales y subtareas
         const mainTasks = tasks.filter(task => !task.parentId);
         const subtasks = tasks.filter(task => task.parentId);
@@ -1356,50 +1364,17 @@ class ProjectManager {
          // 7. Completado
         const completedCell = document.createElement('td');
         completedCell.className = 'col-progress text-center';
-        const progressContainer = document.createElement('div');
-        progressContainer.className = `progress-container ${task.isDynamicProgress ? 'dynamic-progress' : ''}`;
-        
-        const progressBar = document.createElement('div');
-        progressBar.className = 'progress-bar';
-        
-        const progressFill = document.createElement('div');
-        progressFill.className = 'progress-fill';
-        progressFill.style.width = `${task.progress || 0}%`;
-        
-        // Color based on priority and completion
-        let fillColor = '#2196f3'; // default blue
-        if (task.progress === 100) {
-            fillColor = '#4caf50'; // green for completed
-        } else if (task.priority === 'high') {
-            fillColor = '#f44336'; // red for high priority
-        } else if (task.priority === 'medium') {
-            fillColor = '#ff9800'; // orange for medium priority
-        }
-        progressFill.style.backgroundColor = fillColor;
-        
-        const progressText = document.createElement('span');
-         progressText.className = 'progress-text';
-         progressText.innerHTML = `${task.progress || 0}%${task.isDynamicProgress ? ' 🔄' : ''}`;
-         
-         progressBar.appendChild(progressFill);
-         
-         if (task.isDynamicProgress) {
-             const progressContent = document.createElement('div');
-             progressContent.className = 'progress-content';
-             progressContent.appendChild(progressBar);
-             progressContent.appendChild(progressText);
-             progressContainer.appendChild(progressContent);
-             
-             const progressLabel = document.createElement('div');
-             progressLabel.className = 'progress-label';
-             progressLabel.textContent = 'Dinámico';
-             progressContainer.appendChild(progressLabel);
-         } else {
-             progressContainer.appendChild(progressBar);
-             progressContainer.appendChild(progressText);
-         }
-        
-        completedCell.appendChild(progressContainer);
+        completedCell.innerHTML = `
+            <div class="progress-container ${task.isDynamicProgress ? 'dynamic-progress' : ''}">
+                ${task.isDynamicProgress ? '<div class="progress-content">' : ''}
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${task.progress}%"></div>
+                    </div>
+                    <span class="progress-text">${task.progress}%${task.isDynamicProgress ? ' 🔄' : ''}</span>
+                ${task.isDynamicProgress ? '</div>' : ''}
+                ${task.isDynamicProgress ? '<div class="progress-label">Dinámico</div>' : ''}
+            </div>
+        `;
          fixedRow.appendChild(completedCell);
          
          fixedBody.appendChild(fixedRow);
@@ -1689,6 +1664,52 @@ class ProjectManager {
                 }
             }
         });
+    }
+    
+    // Función para validar y corregir discrepancias en barras de progreso
+    validateAndFixProgressBars() {
+        const progressContainers = document.querySelectorAll('.progress-container');
+        let fixedCount = 0;
+        
+        progressContainers.forEach(container => {
+            const progressFill = container.querySelector('.progress-fill');
+            const progressText = container.querySelector('.progress-text');
+            
+            if (progressFill && progressText) {
+                const fillDataProgress = progressFill.getAttribute('data-progress');
+                const textDataProgress = progressText.getAttribute('data-progress');
+                
+                // Extraer el porcentaje del texto
+                const textMatch = progressText.textContent.match(/(\d+)%/);
+                const textProgress = textMatch ? parseInt(textMatch[1]) : 0;
+                
+                // Extraer el porcentaje del width
+                const widthMatch = progressFill.style.width.match(/(\d+)%/);
+                const widthProgress = widthMatch ? parseInt(widthMatch[1]) : 0;
+                
+                // Verificar discrepancia
+                if (textProgress !== widthProgress) {
+                    console.warn(`Discrepancia detectada: Texto ${textProgress}% vs Width ${widthProgress}%`);
+                    
+                    // Usar el valor de data-progress como fuente de verdad
+                    const correctProgress = fillDataProgress || textDataProgress || textProgress;
+                    
+                    // Corregir ambos valores
+                    progressFill.style.width = `${correctProgress}%`;
+                    const isDynamic = progressText.textContent.includes('🔄');
+                    progressText.textContent = `${correctProgress}%${isDynamic ? ' 🔄' : ''}`;
+                    
+                    fixedCount++;
+                    console.log(`Corregido: Ahora ambos muestran ${correctProgress}%`);
+                }
+            }
+        });
+        
+        if (fixedCount > 0) {
+            console.log(`Se corrigieron ${fixedCount} discrepancias en barras de progreso`);
+        }
+        
+        return fixedCount;
     }
     
     getStatusText(status) {
@@ -2038,6 +2059,37 @@ function loadSavedTheme() {
 // Función para aplicar tema predefinido
 function applyPredefinedTheme(themeName) {
     const predefinedThemes = {
+        'default': {
+            name: 'Tema por Defecto',
+            colors: {
+                'primary-color': '#1976d2',
+                'primary-hover': '#1565c0',
+                'success-color': '#4caf50',
+                'warning-color': '#ff9800',
+                'danger-color': '#f44336',
+                'text-primary': '#333333',
+                'text-secondary': '#666666',
+                'background-color': '#ffffff',
+                'surface-color': '#f5f5f5',
+                'border-color': '#e0e0e0'
+            }
+        },
+        'reybesa': {
+            name: 'Tema Reybesa',
+            colors: {
+                'primary-color': '#A00020',
+                'primary-hover': '#800018',
+                'success-color': '#59A472',
+                'warning-color': '#FFC700',
+                'danger-color': '#A00020',
+                'secondary-color': '#19423F',
+                'text-primary': '#333333',
+                'text-secondary': '#666666',
+                'background-color': '#ffffff',
+                'surface-color': '#f8f9fa',
+                'border-color': '#dee2e6'
+            }
+        },
         'dark': {
             name: 'Tema Oscuro',
             colors: {
@@ -2049,36 +2101,21 @@ function applyPredefinedTheme(themeName) {
                 'surface-color': '#334155',
                 'border-color': '#475569'
             }
-        },
-        'blue': {
-            name: 'Tema Azul',
-            colors: {
-                'primary-color': '#0ea5e9',
-                'primary-hover': '#0284c7',
-                'text-primary': '#0f172a',
-                'text-secondary': '#475569',
-                'background-color': '#f0f9ff',
-                'surface-color': '#ffffff',
-                'border-color': '#e2e8f0'
-            }
-        },
-        'green': {
-            name: 'Tema Verde',
-            colors: {
-                'primary-color': '#10b981',
-                'primary-hover': '#059669',
-                'text-primary': '#064e3b',
-                'text-secondary': '#374151',
-                'background-color': '#f0fdf4',
-                'surface-color': '#ffffff',
-                'border-color': '#d1fae5'
-            }
         }
     };
     
     const theme = predefinedThemes[themeName];
     if (theme) {
         applyTheme(theme);
+        // Guardar el tema aplicado en localStorage
+        try {
+            localStorage.setItem('selectedTheme', JSON.stringify(theme));
+            console.log(`Tema ${theme.name} aplicado correctamente`);
+        } catch (error) {
+            console.error('Error guardando tema:', error);
+        }
+    } else {
+        console.error(`Tema '${themeName}' no encontrado`);
     }
 }
 
