@@ -6,12 +6,13 @@ from typing import Optional
 class SupabaseConfig:
     def __init__(self):
         self.url: str = os.getenv('SUPABASE_URL', '')
-        self.key: str = os.getenv('SUPABASE_ANON_KEY', '')
+        # Intentar ambos nombres de variable para compatibilidad
+        self.key: str = os.getenv('SUPABASE_ANON_KEY', '') or os.getenv('SUPABASE_KEY', '')
         self.service_role_key: str = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
         
         if not self.url or not self.key:
             raise ValueError(
-                "SUPABASE_URL y SUPABASE_ANON_KEY son requeridos. "
+                "SUPABASE_URL y SUPABASE_ANON_KEY (o SUPABASE_KEY) son requeridos. "
                 "Por favor configúralos en las variables de entorno."
             )
     
