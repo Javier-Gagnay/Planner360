@@ -4,10 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Planificador de Proyectos Dinámico</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="../assets/styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+    <script src="../assets/api.js"></script>
+    <script>
+        // Verificar autenticación antes de cargar la página
+        (function() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            const token = localStorage.getItem('access_token');
+            
+            if (!currentUser || !token) {
+                window.location.href = 'login.html';
+                return;
+            }
+        })();
+    </script>
     <div class="container">
         <header class="header">
             <h1><i class="fas fa-project-diagram"></i> Planificador de Proyectos</h1>
@@ -24,6 +37,26 @@
                 <button id="settingsBtn" class="btn btn-outline">
                     <i class="fas fa-cog"></i> Configuración
                 </button>
+                <div class="user-menu">
+                    <button id="userBtn" class="btn btn-outline" title="Usuario">
+                        <i class="fas fa-user"></i>
+                        <span id="userNameDisplay">Invitado</span>
+                    </button>
+                    <div id="userDropdown" class="dropdown-menu">
+                        <div id="guestOptions" class="guest-options">
+                            <a href="#" onclick="showLoginModal()"><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</a>
+                            <a href="#" onclick="showRegisterModal()"><i class="fas fa-user-plus"></i> Registrarse</a>
+                        </div>
+                        <div id="userOptions" class="user-options" style="display: none;">
+                            <a href="#" onclick="showProfileModal()"><i class="fas fa-user-edit"></i> Mi Perfil</a>
+                            <div id="adminOption" style="display: none;">
+                                <a href="#" onclick="showAdminPanel()"><i class="fas fa-users-cog"></i> Panel Admin</a>
+                            </div>
+                            <hr>
+                            <a href="#" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -486,6 +519,218 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Modal de Login -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</h2>
+                <span class="close" onclick="closeModal('loginModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginEmail">Email:</label>
+                        <input type="email" id="loginEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Contraseña:</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+                        <button type="button" class="btn btn-outline" onclick="showRegisterModal()">¿No tienes cuenta? Regístrate</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Registro -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-plus"></i> Crear Cuenta</h2>
+                <span class="close" onclick="closeModal('registerModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="registerName">Nombre completo:</label>
+                        <input type="text" id="registerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">Email:</label>
+                        <input type="email" id="registerEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Contraseña:</label>
+                        <input type="password" id="registerPassword" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirmar contraseña:</label>
+                        <input type="password" id="confirmPassword" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Crear Cuenta</button>
+                        <button type="button" class="btn btn-outline" onclick="showLoginModal()">¿Ya tienes cuenta? Inicia sesión</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Perfil de Usuario -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-edit"></i> Mi Perfil</h2>
+                <span class="close" onclick="closeModal('profileModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="profileForm">
+                    <div class="profile-photo-section">
+                        <div class="profile-photo">
+                            <img id="profileImage" src="https://via.placeholder.com/100x100/4f46e5/ffffff?text=U" alt="Foto de perfil">
+                            <button type="button" class="btn btn-outline btn-sm" onclick="changeProfilePhoto()">Cambiar foto</button>
+                            <input type="file" id="photoInput" accept="image/*" style="display: none;">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="profileName">Nombre completo:</label>
+                        <input type="text" id="profileName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="profileEmail">Email:</label>
+                        <input type="email" id="profileEmail" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="profileRole">Rol:</label>
+                        <input type="text" id="profileRole" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="currentPassword">Contraseña actual (para cambios):</label>
+                        <input type="password" id="currentPassword">
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">Nueva contraseña:</label>
+                        <input type="password" id="newPassword" minlength="6">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('profileModal')">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel de Administrador -->
+    <div id="adminPanel" class="modal large-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-users-cog"></i> Panel de Administrador</h2>
+                <span class="close" onclick="closeModal('adminPanel')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="admin-tabs">
+                    <button class="admin-tab active" onclick="showAdminTab('users')">Usuarios</button>
+                    <button class="admin-tab" onclick="showAdminTab('stats')">Estadísticas</button>
+                </div>
+                
+                <div id="usersTab" class="admin-tab-content active">
+                    <div class="admin-controls">
+                        <button class="btn btn-primary" onclick="showAddUserModal()">Agregar Usuario</button>
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="adminSearchUsers" placeholder="Buscar usuarios...">
+                        </div>
+                    </div>
+                    <div class="users-table-container">
+                        <table class="users-table">
+                            <thead>
+                                <tr>
+                                    <th>Foto</th>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>Rol</th>
+                                    <th>Fecha de registro</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <!-- Los usuarios se cargarán dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div id="statsTab" class="admin-tab-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <i class="fas fa-users"></i>
+                            <div class="stat-info">
+                                <h3 id="totalUsersCount">0</h3>
+                                <p>Total de usuarios</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-user-check"></i>
+                            <div class="stat-info">
+                                <h3 id="activeUsersCount">0</h3>
+                                <p>Usuarios activos</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-user-shield"></i>
+                            <div class="stat-info">
+                                <h3 id="adminUsersCount">0</h3>
+                                <p>Administradores</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para agregar usuario (solo admin) -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-plus"></i> Agregar Usuario</h2>
+                <span class="close" onclick="closeModal('addUserModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    <div class="form-group">
+                        <label for="addUserName">Nombre completo:</label>
+                        <input type="text" id="addUserName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="addUserEmail">Email:</label>
+                        <input type="email" id="addUserEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="addUserPassword">Contraseña temporal:</label>
+                        <input type="password" id="addUserPassword" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="addUserRole">Rol:</label>
+                        <select id="addUserRole" required>
+                            <option value="user">Usuario</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Crear Usuario</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('addUserModal')">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/script.js"></script>
 </body>
 </html>

@@ -1,171 +1,208 @@
-# Planificador de Proyectos
+# Project Planner - Aplicación Web Completa
 
-Una aplicación web moderna para la gestión y planificación de proyectos con funcionalidades avanzadas de seguimiento de tareas, visualización temporal y personalización de temas.
+Una aplicación web de planificación de proyectos con autenticación, gestión de usuarios y base de datos.
 
-## 🚀 Características Principales
+## 🚀 Características
 
-### Gestión de Proyectos
-- ✅ Creación y edición de múltiples proyectos
-- ✅ Seguimiento de progreso en tiempo real
-- ✅ Estadísticas detalladas por proyecto
-- ✅ Navegación entre proyectos activos
+- **Frontend**: HTML5, CSS3, JavaScript vanilla
+- **Backend**: FastAPI (Python)
+- **Base de datos**: Supabase (PostgreSQL en la nube) / SQLite (desarrollo local)
+- **Autenticación**: JWT (JSON Web Tokens) + Supabase Auth
+- **Seguridad**: Row Level Security (RLS), hashing de contraseñas, CORS configurado
+- **Tiempo Real**: Actualizaciones en tiempo real con Supabase Realtime
+- **Despliegue**: Docker, Docker Compose, Nginx, Railway, Vercel
+- **Escalabilidad**: Base de datos en la nube, backup automático
+- Sistema de usuarios con roles (usuario/administrador)
+- Gestión completa de proyectos y tareas
+- Interfaz moderna y responsiva
+- Panel de administración
 
-### Gestión de Tareas
-- ✅ Creación de tareas con subtareas anidadas
-- ✅ Asignación de prioridades (Alta, Media, Baja)
-- ✅ Estados de progreso personalizables
-- ✅ Fechas de inicio y duración planificada/real
-- ✅ Progreso dinámico automático para tareas padre
+## 📋 Requisitos
 
-### Visualización
-- ✅ **Vista de Tabla**: Lista detallada con filtros avanzados
-- ✅ **Vista de Calendario**: Visualización mensual de tareas
-- ✅ **Vista Híbrida**: Diagrama de Gantt interactivo
-- ✅ Filtros por estado, prioridad y progreso
-- ✅ Búsqueda en tiempo real
+- Python 3.11+
+- Docker y Docker Compose (para despliegue)
+- Node.js (opcional, para desarrollo)
 
-### Sistema de Temas
-- ✅ Personalización completa de colores, tipografía y espaciado
-- ✅ Carga de temas desde archivos JSON
-- ✅ Temas predefinidos incluidos
-- ✅ Vista previa antes de aplicar
-- ✅ Exportación de temas personalizados
-- ✅ Persistencia automática en localStorage
+## 📦 Instalación y Configuración
 
-### Persistencia de Datos
-- ✅ Guardado automático en localStorage
-- ✅ Exportación de datos en formato JSON
-- ✅ Recuperación automática al recargar
+### Opción 1: Desarrollo Local con Supabase (Recomendado)
 
-## 🛠️ Tecnologías Utilizadas
-
-- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
-- **Estilos**: CSS Variables, Flexbox, Grid
-- **Iconos**: Font Awesome
-- **Almacenamiento**: localStorage API
-- **Servidor de desarrollo**: Python HTTP Server
-
-## 📁 Estructura del Proyecto
-
-```
-Planner - Interno/
-├── index.html          # Página principal
-├── script.js           # Lógica de la aplicación
-├── styles.css          # Estilos CSS
-├── .gitignore          # Archivos excluidos del repositorio
-└── README.md           # Documentación
-```
-
-## 🚀 Instalación y Uso
-
-### Requisitos Previos
-- Navegador web moderno (Chrome, Firefox, Safari, Edge)
-- Python 3.x (para servidor de desarrollo local)
-
-### Instalación
-
-1. **Clonar el repositorio**:
+1. **Clonar el repositorio**
    ```bash
-   git clone https://github.com/tu-usuario/planificador-proyectos.git
-   cd planificador-proyectos
+   git clone <url-del-repositorio>
+   cd planner-interno
    ```
 
-2. **Iniciar servidor local**:
+2. **Configurar Supabase**
+   - Sigue la guía detallada en `docs/SUPABASE_SETUP.md`
+   - Crea un proyecto en [Supabase](https://supabase.com)
+   - Ejecuta el script `backend/supabase_schema.sql`
+   - Configura las variables de entorno
+
+3. **Configurar el backend**
    ```bash
+   cd backend
+   pip install -r requirements.txt
+   cp .env.example .env
+   # Editar .env con tus credenciales de Supabase
+   ```
+
+4. **Iniciar el backend**
+   ```bash
+   python -m uvicorn main:app --reload --host 0.0.0.0 --port 8001
+   ```
+
+5. **Iniciar el frontend**
+   ```bash
+   cd frontend
    python -m http.server 8000
    ```
 
-3. **Abrir en el navegador**:
+6. **Acceder a la aplicación**
+   - Frontend: http://localhost:8000/src
+   - API: http://localhost:8001
+   - Documentación API: http://localhost:8001/docs
+
+### Opción 2: Desarrollo Local con SQLite (Legacy)
+
+1. **Usar la versión SQLite**
+   ```bash
+   cd backend
+   cp main.py main_supabase.py
+   cp main_sqlite_backup.py main.py  # Si existe
    ```
-   http://localhost:8000
-   ```
 
-### Uso en Producción
+2. **Seguir pasos 3-6 de la Opción 1**
 
-Para desplegar en producción, simplemente sube los archivos `index.html`, `script.js` y `styles.css` a tu servidor web. No se requiere configuración adicional.
+#### Frontend
+```bash
+# En el directorio raíz del proyecto
+python -m http.server 8000
 
-## 📖 Guía de Uso
-
-### Gestión de Proyectos
-1. Haz clic en "Nuevo Proyecto" para crear un proyecto
-2. Completa la información básica (nombre, descripción, fechas)
-3. Usa el botón "Proyectos" para navegar entre proyectos activos
-
-### Gestión de Tareas
-1. Haz clic en "Nueva Tarea" para agregar tareas al proyecto actual
-2. Define prioridad, fechas y duración
-3. Crea subtareas usando el campo "Tarea Padre"
-4. Actualiza el progreso usando la barra deslizante
-
-### Personalización de Temas
-1. Accede a "Configuración" → "Gestión de Temas"
-2. Carga un archivo JSON con tu tema personalizado
-3. Usa la vista previa para verificar los cambios
-4. Aplica el tema o exporta el actual
-
-### Formato de Archivo de Tema
-
-```json
-{
-  "name": "Mi Tema Personalizado",
-  "colors": {
-    "primary": "#2196f3",
-    "secondary": "#f44336",
-    "background": "#ffffff",
-    "text": "#333333"
-  },
-  "typography": {
-    "font-family": "Arial, sans-serif",
-    "font-size-base": "14px"
-  },
-  "spacing": {
-    "padding-small": "8px",
-    "margin-medium": "16px"
-  },
-  "borders": {
-    "radius-medium": "8px",
-    "width-thin": "1px"
-  }
-}
+# O usar cualquier servidor web estático
+# Ejemplo con Node.js:
+npx serve . -p 8000
 ```
 
-## 🔧 Desarrollo
+### Opción 2: Docker (Recomendado para Producción)
 
-### Estructura del Código
+```bash
+# Construir y ejecutar con Docker Compose
+docker-compose up --build
 
-- **ProjectManager**: Clase principal que maneja toda la lógica de proyectos y tareas
-- **Funciones de Tema**: Sistema modular para personalización visual
-- **Event Listeners**: Gestión centralizada de eventos de UI
-- **Persistencia**: Manejo automático de localStorage
+# En modo detached (segundo plano)
+docker-compose up -d --build
+```
 
-### Contribuir
+## 🌐 Opciones de Despliegue Público
 
-1. Fork el repositorio
-2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit tus cambios (`git commit -am 'Agregar nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Crea un Pull Request
+### 1. Railway (Recomendado - Fácil y Gratuito)
 
-## 📝 Licencia
+1. Crear cuenta en [Railway.app](https://railway.app)
+2. Conectar tu repositorio de GitHub
+3. Railway detectará automáticamente el Dockerfile
+4. Configurar variables de entorno:
+   - `SECRET_KEY`: Una clave secreta segura
+   - `PORT`: 8001
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+### 2. Heroku
 
-## 🤝 Soporte
+```bash
+# Instalar Heroku CLI
+# Crear aplicación
+heroku create tu-app-name
 
-Si encuentras algún problema o tienes sugerencias, por favor:
-1. Revisa los issues existentes
-2. Crea un nuevo issue con detalles del problema
-3. Incluye pasos para reproducir el error
+# Configurar variables de entorno
+heroku config:set SECRET_KEY=tu-clave-secreta-aqui
 
-## 🎯 Roadmap
+# Desplegar
+git push heroku main
+```
 
-- [ ] Integración con APIs externas
-- [ ] Notificaciones push
-- [ ] Colaboración en tiempo real
-- [ ] Aplicación móvil
+### 3. Vercel (Solo Frontend) + Railway (Backend)
+
+#### Frontend en Vercel:
+1. Conectar repositorio en [Vercel.com](https://vercel.com)
+2. Configurar build settings:
+   - Build Command: `echo "No build needed"`
+   - Output Directory: `./`
+
+#### Backend en Railway:
+- Seguir los pasos de Railway mencionados arriba
+
+### 4. DigitalOcean App Platform
+
+1. Crear cuenta en DigitalOcean
+2. Usar App Platform
+3. Conectar repositorio
+4. Configurar como aplicación Docker
+
+## 🔐 Credenciales por Defecto
+
+La aplicación incluye un usuario administrador por defecto (creado automáticamente en Supabase):
+
+- **Usuario**: `admin123`
+- **Contraseña**: `admin123`
+- **Email**: `admin@planner.com`
+- **Rol**: Administrador
+
+> ⚠️ **Importante**: Cambia estas credenciales en producción por seguridad.
+> 
+> **Nota**: Si usas Supabase, el usuario se crea automáticamente al ejecutar el script SQL. Si usas SQLite, se crea al iniciar la aplicación por primera vez.
+
+## 📱 Uso de la Aplicación
+
+1. Acceder a la URL de tu aplicación
+2. Iniciar sesión con las credenciales por defecto o registrar un nuevo usuario
+3. Crear proyectos y tareas
+4. Gestionar usuarios (solo administradores)
+
+## 🔧 Estructura del Proyecto
+
+```
+project-planner/
+├── backend/
+│   ├── main.py              # API FastAPI
+│   ├── requirements.txt     # Dependencias Python
+│   └── Dockerfile          # Configuración Docker
+├── frontend/
+│   └── nginx.conf          # Configuración Nginx
+├── index.html              # Página principal del planner
+├── login.html              # Página de login
+├── login.js                # Lógica de autenticación
+├── api.js                  # Cliente API
+├── script.js               # Lógica principal
+├── styles.css              # Estilos CSS
+├── docker-compose.yml      # Configuración Docker Compose
+└── README.md               # Este archivo
+```
+
+## 🔒 Seguridad
+
+- Cambiar la `SECRET_KEY` en producción
+- Usar HTTPS en producción
+- Configurar CORS apropiadamente
+- Considerar usar PostgreSQL para mayor robustez
+
+## 🐛 Solución de Problemas
+
+### Error de CORS
+Si tienes problemas de CORS, asegúrate de que el frontend esté configurado para usar la URL correcta del backend en `api.js`:
+
+```javascript
+const API_BASE_URL = 'https://tu-backend-url.com/api';
+```
+
+### Base de datos no se crea
+Verifica que el directorio `backend/data` tenga permisos de escritura.
+
+### Token expirado
+Los tokens JWT expiran en 30 minutos. Los usuarios necesitarán volver a iniciar sesión.
+
+## 🎯 Próximas Mejoras
+
+- [ ] Notificaciones en tiempo real
 - [ ] Exportación a PDF
-- [ ] Integración con calendarios externos
-
----
-
-**Desarrollado con ❤️ para mejorar la productividad en la gestión de proyectos**
+- [ ] Integración con calendarios
+- [ ] Aplicación móvil
+- [ ] Colaboración en tiempo real

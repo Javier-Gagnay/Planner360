@@ -2186,13 +2186,21 @@ function closeProject(projectId) {
 
 // Inicializar la aplicación
 let projectManager;
+let authManager;
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Inicializar autenticación primero
+    authManager = new AuthManager();
+    
+    // Luego inicializar el gestor de proyectos
     projectManager = new ProjectManager();
     
     // Configurar funcionalidades de temas
     setupThemeUpload();
     loadSavedTheme();
+    
+    // Integrar autenticación con la aplicación
+    integrateAuthWithApp();
 });
 
 // Guardar automáticamente cada 30 segundos
@@ -2208,3 +2216,606 @@ window.addEventListener('beforeunload', () => {
         projectManager.saveToStorage();
     }
 });
+
+// ===== SISTEMA DE AUTENTICACIÓN =====
+
+// Clase para manejar la autenticación de usuarios
+class AuthManager {
+    constructor() {
+        this.currentUser = null;
+        this.users = this.loadUsers();
+        this.init();
+    }
+
+    init() {
+        this.setupEventListeners();
+        this.checkSession();
+        this.updateUI();
+    }
+
+    setupEventListeners() {
+        // Event listeners para formularios
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleLogin();
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleRegister();
+        });
+
+        document.getElementById('profileForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleProfileUpdate();
+        });
+
+        document.getElementById('addUserForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleAddUser();
+        });
+
+        // Event listener para el menú de usuario
+        document.getElementById('userBtn').addEventListener('click', () => {
+            this.toggleUserDropdown();
+        });
+
+        // Event listener para cambio de foto de perfil
+        document.getElementById('photoInput').addEventListener('change', (e) => {
+            this.handlePhotoChange(e);
+        });
+
+        // Cerrar dropdown al hacer clic fuera
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.user-menu')) {
+                this.closeUserDropdown();
+            }
+        });
+
+        // Event listener para búsqueda de usuarios en admin
+        document.getElementById('adminSearchUsers').addEventListener('input', (e) => {
+            this.filterUsers(e.target.value);
+        });
+    }
+
+    // Cargar usuarios del localStorage
+    loadUsers() {
+        const users = localStorage.getItem('plannerUsers');
+        if (users) {
+            return JSON.parse(users);
+        } else {
+            // Crear usuario administrador por defecto
+            const defaultUsers = {
+                'admin@planner.com': {
+                    id: 'admin-001',
+                    name: 'Administrador',
+                    email: 'admin@planner.com',
+                    password: 'admin123', // En producción esto debería estar hasheado
+                    role: 'admin',
+                    photo: 'https://via.placeholder.com/100x100/4f46e5/ffffff?text=A',
+                    createdAt: new Date().toISOString(),
+                    status: 'active'
+                }
+            };
+            this.saveUsers(defaultUsers);
+            return defaultUsers;
+        }
+    }
+
+    // Guardar usuarios en localStorage
+    saveUsers(users = this.users) {
+        localStorage.setItem('plannerUsers', JSON.stringify(users));
+        this.users = users;
+    }
+
+    // Verificar sesión existente
+    checkSession() {
+        const session = localStorage.getItem('plannerSession');
+        if (session) {
+            const sessionData = JSON.parse(session);
+            const user = this.users[sessionData.email];
+            if (user && sessionData.timestamp > Date.now() - (24 * 60 * 60 * 1000)) { // 24 horas
+                this.currentUser = user;
+                return true;
+            } else {
+                localStorage.removeItem('plannerSession');
+            }
+        }
+        return false;
+    }
+
+    // Crear sesión
+    createSession(user) {
+        const sessionData = {
+            email: user.email,
+            timestamp: Date.now()
+        };
+        localStorage.setItem('plannerSession', JSON.stringify(sessionData));
+        this.currentUser = user;
+    }
+
+    // Manejar login
+    handleLogin() {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+
+        const user = this.users[email];
+        if (user && user.password === password && user.status === 'active') {
+            this.createSession(user);
+            this.updateUI();
+            closeModal('loginModal');
+            this.showNotification('¡Bienvenido! Has iniciado sesión correctamente.', 'success');
+        } else {
+            this.showNotification('Email o contraseña incorrectos.', 'error');
+        }
+    }
+
+    // Manejar registro
+    handleRegister() {
+        const name = document.getElementById('registerName').value;
+        const email = document.getElementById('registerEmail').value;
+        const password = document.getElementById('registerPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        // Validaciones
+        if (password !== confirmPassword) {
+            this.showNotification('Las contraseñas no coinciden.', 'error');
+            return;
+        }
+
+        if (this.users[email]) {
+            this.showNotification('Ya existe un usuario con este email.', 'error');
+            return;
+        }
+
+        // Crear nuevo usuario
+        const newUser = {
+            id: 'user-' + Date.now(),
+            name: name,
+            email: email,
+            password: password,
+            role: 'user',
+            photo: 'https://via.placeholder.com/100x100/4f46e5/ffffff?text=' + name.charAt(0).toUpperCase(),
+            createdAt: new Date().toISOString(),
+            status: 'active'
+        };
+
+        this.users[email] = newUser;
+        this.saveUsers();
+        this.createSession(newUser);
+        this.updateUI();
+        closeModal('registerModal');
+        this.showNotification('¡Cuenta creada exitosamente! Bienvenido.', 'success');
+    }
+
+    // Manejar actualización de perfil
+    handleProfileUpdate() {
+        if (!this.currentUser) return;
+
+        const name = document.getElementById('profileName').value;
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+
+        // Verificar contraseña actual si se quiere cambiar algo
+        if ((newPassword || name !== this.currentUser.name) && currentPassword !== this.currentUser.password) {
+            this.showNotification('Contraseña actual incorrecta.', 'error');
+            return;
+        }
+
+        // Actualizar datos
+        this.currentUser.name = name;
+        if (newPassword) {
+            this.currentUser.password = newPassword;
+        }
+
+        this.users[this.currentUser.email] = this.currentUser;
+        this.saveUsers();
+        this.updateUI();
+        closeModal('profileModal');
+        this.showNotification('Perfil actualizado correctamente.', 'success');
+
+        // Limpiar campos de contraseña
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value = '';
+    }
+
+    // Manejar cambio de foto de perfil
+    handlePhotoChange(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const photoUrl = e.target.result;
+                document.getElementById('profileImage').src = photoUrl;
+                if (this.currentUser) {
+                    this.currentUser.photo = photoUrl;
+                    this.users[this.currentUser.email] = this.currentUser;
+                    this.saveUsers();
+                    this.updateUI();
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Manejar agregar usuario (solo admin)
+    handleAddUser() {
+        if (!this.currentUser || this.currentUser.role !== 'admin') return;
+
+        const name = document.getElementById('addUserName').value;
+        const email = document.getElementById('addUserEmail').value;
+        const password = document.getElementById('addUserPassword').value;
+        const role = document.getElementById('addUserRole').value;
+
+        if (this.users[email]) {
+            this.showNotification('Ya existe un usuario con este email.', 'error');
+            return;
+        }
+
+        const newUser = {
+            id: 'user-' + Date.now(),
+            name: name,
+            email: email,
+            password: password,
+            role: role,
+            photo: 'https://via.placeholder.com/100x100/4f46e5/ffffff?text=' + name.charAt(0).toUpperCase(),
+            createdAt: new Date().toISOString(),
+            status: 'active'
+        };
+
+        this.users[email] = newUser;
+        this.saveUsers();
+        this.loadUsersTable();
+        this.updateAdminStats();
+        closeModal('addUserModal');
+        this.showNotification('Usuario creado exitosamente.', 'success');
+
+        // Limpiar formulario
+        document.getElementById('addUserForm').reset();
+    }
+
+    // Cerrar sesión
+    logout() {
+        localStorage.removeItem('plannerSession');
+        this.currentUser = null;
+        this.updateUI();
+        this.showNotification('Has cerrado sesión correctamente.', 'info');
+    }
+
+    // Actualizar interfaz de usuario
+    updateUI() {
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        const guestOptions = document.getElementById('guestOptions');
+        const userOptions = document.getElementById('userOptions');
+        const adminOption = document.getElementById('adminOption');
+
+        if (this.currentUser) {
+            userNameDisplay.textContent = this.currentUser.name;
+            guestOptions.style.display = 'none';
+            userOptions.style.display = 'block';
+            
+            if (this.currentUser.role === 'admin') {
+                adminOption.style.display = 'block';
+            } else {
+                adminOption.style.display = 'none';
+            }
+        } else {
+            userNameDisplay.textContent = 'Invitado';
+            guestOptions.style.display = 'block';
+            userOptions.style.display = 'none';
+            adminOption.style.display = 'none';
+        }
+    }
+
+    // Toggle dropdown del usuario
+    toggleUserDropdown() {
+        const dropdown = document.getElementById('userDropdown');
+        dropdown.classList.toggle('show');
+    }
+
+    // Cerrar dropdown del usuario
+    closeUserDropdown() {
+        const dropdown = document.getElementById('userDropdown');
+        dropdown.classList.remove('show');
+    }
+
+    // Cargar tabla de usuarios en admin panel
+    loadUsersTable() {
+        const tbody = document.getElementById('usersTableBody');
+        tbody.innerHTML = '';
+
+        Object.values(this.users).forEach(user => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><img src="${user.photo}" alt="${user.name}" class="user-photo"></td>
+                <td>${user.name}</td>
+                <td>${user.email}</td>
+                <td><span class="user-role role-${user.role}">${user.role === 'admin' ? 'Administrador' : 'Usuario'}</span></td>
+                <td>${new Date(user.createdAt).toLocaleDateString()}</td>
+                <td><span class="user-status status-${user.status}">${user.status === 'active' ? 'Activo' : 'Inactivo'}</span></td>
+                <td class="action-buttons">
+                    <button class="btn btn-sm btn-outline" onclick="authManager.editUser('${user.email}')" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="authManager.toggleUserStatus('${user.email}')" title="${user.status === 'active' ? 'Desactivar' : 'Activar'}">
+                        <i class="fas fa-${user.status === 'active' ? 'ban' : 'check'}"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // Filtrar usuarios en la tabla
+    filterUsers(searchTerm) {
+        const rows = document.querySelectorAll('#usersTableBody tr');
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            if (text.includes(searchTerm.toLowerCase())) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Actualizar estadísticas del admin
+    updateAdminStats() {
+        const users = Object.values(this.users);
+        const totalUsers = users.length;
+        const activeUsers = users.filter(u => u.status === 'active').length;
+        const adminUsers = users.filter(u => u.role === 'admin').length;
+
+        document.getElementById('totalUsersCount').textContent = totalUsers;
+        document.getElementById('activeUsersCount').textContent = activeUsers;
+        document.getElementById('adminUsersCount').textContent = adminUsers;
+    }
+
+    // Editar usuario
+    editUser(email) {
+        // Implementar modal de edición de usuario
+        this.showNotification('Función de edición en desarrollo.', 'info');
+    }
+
+    // Cambiar estado del usuario
+    toggleUserStatus(email) {
+        const user = this.users[email];
+        if (user && user.email !== this.currentUser.email) {
+            user.status = user.status === 'active' ? 'inactive' : 'active';
+            this.saveUsers();
+            this.loadUsersTable();
+            this.updateAdminStats();
+            this.showNotification(`Usuario ${user.status === 'active' ? 'activado' : 'desactivado'} correctamente.`, 'success');
+        }
+    }
+
+    // Mostrar notificación
+    showNotification(message, type = 'info') {
+        // Crear elemento de notificación
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
+            <button onclick="this.parentElement.remove()">&times;</button>
+        `;
+
+        // Agregar estilos si no existen
+        if (!document.querySelector('#notification-styles')) {
+            const styles = document.createElement('style');
+            styles.id = 'notification-styles';
+            styles.textContent = `
+                .notification {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: var(--surface-color);
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    padding: 12px 16px;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                    z-index: 10000;
+                    max-width: 400px;
+                    animation: slideIn 0.3s ease;
+                }
+                .notification-success { border-left: 4px solid #10b981; }
+                .notification-error { border-left: 4px solid #ef4444; }
+                .notification-info { border-left: 4px solid #3b82f6; }
+                .notification button {
+                    background: none;
+                    border: none;
+                    font-size: 18px;
+                    cursor: pointer;
+                    color: var(--text-secondary);
+                    margin-left: auto;
+                }
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(styles);
+        }
+
+        document.body.appendChild(notification);
+
+        // Auto-remover después de 5 segundos
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+}
+
+// Funciones globales para los modales de autenticación
+function showLoginModal() {
+    document.getElementById('loginModal').style.display = 'block';
+    document.getElementById('loginEmail').focus();
+}
+
+function showRegisterModal() {
+    closeModal('loginModal');
+    document.getElementById('registerModal').style.display = 'block';
+    document.getElementById('registerName').focus();
+}
+
+function showProfileModal() {
+    if (!authManager.currentUser) return;
+    
+    // Llenar datos del perfil
+    document.getElementById('profileName').value = authManager.currentUser.name;
+    document.getElementById('profileEmail').value = authManager.currentUser.email;
+    document.getElementById('profileRole').value = authManager.currentUser.role === 'admin' ? 'Administrador' : 'Usuario';
+    document.getElementById('profileImage').src = authManager.currentUser.photo;
+    
+    document.getElementById('profileModal').style.display = 'block';
+    authManager.closeUserDropdown();
+}
+
+function showAdminPanel() {
+    if (!authManager.currentUser || authManager.currentUser.role !== 'admin') return;
+    
+    document.getElementById('adminPanel').style.display = 'block';
+    authManager.loadUsersTable();
+    authManager.updateAdminStats();
+    authManager.closeUserDropdown();
+}
+
+function showAddUserModal() {
+    document.getElementById('addUserModal').style.display = 'block';
+}
+
+function showAdminTab(tabName) {
+    // Ocultar todas las pestañas
+    document.querySelectorAll('.admin-tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Mostrar pestaña seleccionada
+    document.getElementById(tabName + 'Tab').classList.add('active');
+    event.target.classList.add('active');
+}
+
+function changeProfilePhoto() {
+    document.getElementById('photoInput').click();
+}
+
+function logout() {
+    authManager.logout();
+    authManager.closeUserDropdown();
+}
+
+// Función para integrar autenticación con la aplicación
+function integrateAuthWithApp() {
+    // Verificar permisos de usuario para ciertas funciones
+    const restrictedButtons = [
+        'addProjectBtn',
+        'exportBtn'
+    ];
+    
+    // Función para actualizar permisos de UI
+    function updateUIPermissions() {
+        const isLoggedIn = authManager.currentUser !== null;
+        const isAdmin = authManager.currentUser && authManager.currentUser.role === 'admin';
+        
+        // Mostrar/ocultar funciones según el estado de autenticación
+        restrictedButtons.forEach(buttonId => {
+            const button = document.getElementById(buttonId);
+            if (button) {
+                if (isLoggedIn) {
+                    button.style.display = '';
+                    button.disabled = false;
+                } else {
+                    // Para usuarios no autenticados, mostrar pero deshabilitar
+                    button.style.opacity = '0.5';
+                    button.disabled = true;
+                    button.title = 'Inicia sesión para usar esta función';
+                }
+            }
+        });
+        
+        // Agregar indicador de usuario en el proyecto actual
+        if (isLoggedIn && projectManager.currentProject) {
+            const project = projectManager.getCurrentProject();
+            if (project && !project.owner) {
+                project.owner = authManager.currentUser.email;
+                project.ownerName = authManager.currentUser.name;
+                projectManager.saveToStorage();
+            }
+        }
+    }
+    
+    // Interceptar funciones que requieren autenticación
+    const originalShowProjectModal = projectManager.showProjectModal;
+    projectManager.showProjectModal = function(projectId = null) {
+        if (!authManager.currentUser) {
+            authManager.showNotification('Debes iniciar sesión para crear o editar proyectos.', 'error');
+            showLoginModal();
+            return;
+        }
+        originalShowProjectModal.call(this, projectId);
+    };
+    
+    const originalShowTaskModal = projectManager.showTaskModal;
+    projectManager.showTaskModal = function(taskId = null, parentId = null) {
+        if (!authManager.currentUser) {
+            authManager.showNotification('Debes iniciar sesión para crear o editar tareas.', 'error');
+            showLoginModal();
+            return;
+        }
+        originalShowTaskModal.call(this, taskId, parentId);
+    };
+    
+    const originalExportData = projectManager.exportData;
+    projectManager.exportData = function() {
+        if (!authManager.currentUser) {
+            authManager.showNotification('Debes iniciar sesión para exportar datos.', 'error');
+            showLoginModal();
+            return;
+        }
+        originalExportData.call(this);
+    };
+    
+    // Actualizar UI cuando cambie el estado de autenticación
+    const originalUpdateUI = authManager.updateUI;
+    authManager.updateUI = function() {
+        originalUpdateUI.call(this);
+        updateUIPermissions();
+        
+        // Actualizar información del proyecto si hay usuario logueado
+        if (this.currentUser && projectManager.currentProject) {
+            projectManager.renderProjects();
+        }
+    };
+    
+    // Llamar inicialmente
+    updateUIPermissions();
+    
+    // Agregar información de usuario a los datos exportados
+    const originalGetExportData = projectManager.getExportData || function() {
+        return {
+            projects: this.projects,
+            currentProject: this.currentProject,
+            exportDate: new Date().toISOString()
+        };
+    };
+    
+    projectManager.getExportData = function() {
+        const data = originalGetExportData.call(this);
+        if (authManager.currentUser) {
+            data.exportedBy = {
+                name: authManager.currentUser.name,
+                email: authManager.currentUser.email,
+                date: new Date().toISOString()
+            };
+        }
+        return data;
+    };
+}
