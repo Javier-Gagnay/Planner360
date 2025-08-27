@@ -1648,6 +1648,9 @@ class ProjectManager {
             if (calculatedProgress !== null) {
                 parentTask.progress = calculatedProgress;
                 parentTask.isDynamicProgress = true;
+                
+                // Actualizar la interfaz visual inmediatamente
+                this.updateProgressVisual(parentTask.id, calculatedProgress);
             }
             
             if (calculatedDuration !== null) {
@@ -1663,6 +1666,47 @@ class ProjectManager {
                     parentTask.inheritedStartActual = calculatedDates.startActual;
                 }
             }
+        });
+    }
+    
+    // Actualizar la visualización del progreso para una tarea específica
+    updateProgressVisual(taskId, progress) {
+        // Buscar todos los elementos de progreso para esta tarea
+        const progressContainers = document.querySelectorAll(`[data-task-id="${taskId}"] .progress-container, .progress-container[data-task-id="${taskId}"]`);
+        
+        progressContainers.forEach(container => {
+            const progressFill = container.querySelector('.progress-fill');
+            const progressText = container.querySelector('.progress-text');
+            
+            if (progressFill && progressText) {
+                // Actualizar la barra de progreso
+                progressFill.style.width = `${progress}%`;
+                progressFill.setAttribute('data-progress', progress);
+                
+                // Actualizar el texto del progreso
+                const isDynamic = progressText.textContent.includes('🔄');
+                progressText.textContent = `${progress}%${isDynamic ? ' 🔄' : ''}`;
+                progressText.setAttribute('data-progress', progress);
+            }
+        });
+        
+        // También buscar por ID de fila de tarea
+        const taskRows = document.querySelectorAll(`#task-${taskId}`);
+        taskRows.forEach(row => {
+            const progressContainers = row.querySelectorAll('.progress-container');
+            progressContainers.forEach(container => {
+                const progressFill = container.querySelector('.progress-fill');
+                const progressText = container.querySelector('.progress-text');
+                
+                if (progressFill && progressText) {
+                    progressFill.style.width = `${progress}%`;
+                    progressFill.setAttribute('data-progress', progress);
+                    
+                    const isDynamic = progressText.textContent.includes('🔄');
+                    progressText.textContent = `${progress}%${isDynamic ? ' 🔄' : ''}`;
+                    progressText.setAttribute('data-progress', progress);
+                }
+            });
         });
     }
     

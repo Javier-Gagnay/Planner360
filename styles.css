@@ -1442,16 +1442,50 @@ body {
 
 .hybrid-fixed-table .task-row.subtask .progress-container {
     height: 16px;
+    padding: 0 2px;
+}
+
+.hybrid-fixed-table .task-row.subtask .progress-container.dynamic-progress {
+    background-color: #f0f8ff;
+    border-radius: 3px;
+    padding: 1px;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.hybrid-fixed-table .task-row.subtask .progress-container.dynamic-progress .progress-content {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.hybrid-fixed-table .task-row.subtask .progress-container .progress-label {
+    font-size: 8px;
+    color: #666;
+    font-style: italic;
+    text-align: center;
 }
 
 .hybrid-fixed-table .task-row.subtask .progress-bar {
-    height: 12px;
-    border-radius: 6px;
+    width: 45px;
+    height: 6px;
+    border-radius: 3px;
+}
+
+.hybrid-fixed-table .task-row.subtask .dynamic-progress .progress-bar {
+    border: 1px solid #4CAF50;
+    background-color: #f9fff9;
 }
 
 .hybrid-fixed-table .task-row.subtask .progress-text {
     font-size: 9px;
     line-height: 12px;
+    min-width: 25px;
+}
+
+.hybrid-fixed-table .task-row.subtask .dynamic-progress .progress-text {
+    color: #2E7D32;
+    font-weight: 600;
 }
 
 .hybrid-fixed-table .task-row.subtask .task-description {
@@ -1532,32 +1566,68 @@ body {
 .hybrid-fixed-table .progress-container {
     width: 100%;
     padding: 0 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-direction: row;
+    justify-content: center;
+}
+
+.hybrid-fixed-table .progress-container.dynamic-progress {
+    background-color: #f0f8ff;
+    border-radius: 4px;
+    padding: 2px;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.hybrid-fixed-table .progress-container.dynamic-progress .progress-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hybrid-fixed-table .progress-container .progress-label {
+    font-size: 9px;
+    color: #666;
+    font-style: italic;
+    text-align: center;
 }
 
 .hybrid-fixed-table .progress-bar {
-    width: 100%;
-    height: 20px;
-    background-color: #f0f0f0;
-    border-radius: 10px;
-    position: relative;
+    width: 60px;
+    height: 8px;
+    background-color: var(--border-color);
+    border-radius: 4px;
     overflow: hidden;
+}
+
+.hybrid-fixed-table .dynamic-progress .progress-bar {
+    border: 1px solid #4CAF50;
+    background-color: #f9fff9;
 }
 
 .hybrid-fixed-table .progress-fill {
     height: 100%;
-    border-radius: 10px;
+    background: linear-gradient(90deg, var(--success-color), #34d399);
     transition: width 0.3s ease;
+    border-radius: 4px;
 }
 
 .hybrid-fixed-table .progress-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 11px;
-    font-weight: bold;
-    color: #333;
-    z-index: 1;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    min-width: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.hybrid-fixed-table .dynamic-progress .progress-text {
+    color: #2E7D32;
+    font-weight: 600;
 }
 
 /* Date and duration info in hybrid view */
